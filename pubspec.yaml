@@ -16,16 +16,17 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   config:
     enable-swift-package-manager: false
 
   uses-material-design: true
-  assets:
+    assets:
     - assets/alarm.mp3.mp3
-  #  - images/a_dot_ham.jpeg
+    - assets/ic_launcher.png
+
   # fonts:
   #   - family: Schyler
   #     fonts:
@@ -37,3 +38,7 @@ flutter:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/ic_launcher.png"
