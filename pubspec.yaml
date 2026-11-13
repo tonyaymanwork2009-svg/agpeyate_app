@@ -27,9 +27,10 @@ flutter:
     enable-swift-package-manager: false
 
   uses-material-design: true
-    assets:
+  assets:
     - assets/alarm.mp3.mp3
     - assets/ic_launcher.png
+
 
   # fonts:
   #   - family: Schyler
