@@ -131,15 +131,18 @@ class _MainScreenState extends State<MainScreen> {
       playSound: true,
     );
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
+       await flutterLocalNotificationsPlugin.zonedSchedule(
       index,
       'موعد ${_prayers[index]}',
       'حان الآن وقت ${_prayers[index]} (${_prayerTimes[index]})',
       scheduledDate,
       const NotificationDetails(android: androidDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
+
   }
 
 
@@ -335,7 +338,9 @@ class _MainScreenState extends State<MainScreen> {
                                     builder: (context) => ReadingScreen(
                                         prayerIndex: index,
                                         prayerName: _prayers[index],
-                                        onSaveBookmark: (title) => _saveBookmarkToDisk(title)),
+                                       onSaveBookmark: (title) => _saveBookmarkToDisk(title),
+)),
+);
 
                               );
                             }
@@ -377,7 +382,9 @@ class _MainScreenState extends State<MainScreen> {
                                   builder: (context) => ReadingScreen(
                                       prayerIndex: index + 10,
                                       prayerName: _extraPrayers[index],
-                                      onSaveBookmark: (title) => _saveBookmarkToDisk(title)),
+                                      onSaveBookmark: (title) => _saveBookmarkToDisk(title),
+)),
+);
 
                             );
                           },
@@ -465,12 +472,12 @@ class _MainScreenState extends State<MainScreen> {
                     subtitle: Text('تنبيه يومي ثابت: ${_prayerTimes[index]}',
                         style:
                             const TextStyle(color: Colors.grey, fontSize: 12)),
-                    trailing: (
-                      value: _alarmStates[index],
-                      activeThumbColor: const Color(0xFFD4AF37),
-                     onChanged: (bool value) => _togglePrayerAlarm(index, value),
-
+                    trailing: Switch(
+              value: _alarmStates[index],
+              activeThumbColor: const Color(0xFFD4AF37),
+              onChanged: (bool value) => _togglePrayerAlarm(index, value),
                     ),
+
                   ),
                 );
               },
