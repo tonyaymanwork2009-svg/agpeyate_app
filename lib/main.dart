@@ -63,13 +63,87 @@ class _MainScreenState extends State<MainScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String _lastTriggeredTime = "";
 
-  @override
+    @override
   void initState() {
     super.initState();
+    _loadSavedData();
     _alarmTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _checkPrayerAlarm();
     });
   }
+
+  Future<void> _loadSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _savedBookmark = prefs.getString('saved_bookmark') ?? "لا يوجد علامة محفوظة بعد";
+      for (int i = 0; i < _alarmStates.length; i++) {
+        _alarmStates[i] = prefs.getBool('alarm_$i') ?? false;
+      }
+    });
+  }
+
+  Future<void> _saveBookmarkToDisk(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_bookmark', value);
+    setState(() {
+      _savedBookmark = value;
+    });
+  }
+
+  Future<void> _togglePrayerAlarm(int index, bool isEnabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('alarm_$index', isEnabled);
+    setState(() {
+      _alarmStates[index] = isEnabled;
+    });
+
+    if (isEnabled) {
+      await _scheduleBackgroundNotification(index);
+    } else {
+      await flutterLocalNotificationsPlugin.cancel(index);
+    }
+  }
+
+  Future<void> _scheduleBackgroundNotification(int index) async {
+    String timeStr = _prayerTimes[index].trim();
+    bool isPM = timeStr.contains('م');
+    String cleanTime = timeStr.replaceAll('ص', '').replaceAll('م', '').trim();
+    List<String> parts = cleanTime.split(':');
+    int hour = int.parse(parts[0]);
+    int minute = int.parse(parts[1]);
+
+    if (isPM && hour != 12) hour += 12;
+    if (!isPM && hour == 12) hour = 0;
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'prayer_alarms_channel',
+      'منبهات الأجبية',
+      channelDescription: 'تنبيهات مواعيد صلوات الأجبية',
+      importance: Importance.max,
+      priority: Priority.high,
+      sound: RawResourceAndroidNotificationSound('alarm'),
+      playSound: true,
+    );
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      index,
+      'موعد ${_prayers[index]}',
+      'حان الآن وقت ${_prayers[index]} (${_prayerTimes[index]})',
+      scheduledDate,
+      const NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
 
   void _checkPrayerAlarm() async {
     final now = DateTime.now();
@@ -263,8 +337,8 @@ class _MainScreenState extends State<MainScreen> {
                                     builder: (context) => ReadingScreen(
                                         prayerIndex: index,
                                         prayerName: _prayers[index],
-                                        onSaveBookmark: (title) => setState(
-                                            () => _savedBookmark = title))),
+                                        onSaveBookmark: (title) => _saveBookmarkToDisk(title)),
+
                               );
                             }
                           },
@@ -305,8 +379,8 @@ class _MainScreenState extends State<MainScreen> {
                                   builder: (context) => ReadingScreen(
                                       prayerIndex: index + 10,
                                       prayerName: _extraPrayers[index],
-                                      onSaveBookmark: (title) => setState(
-                                          () => _savedBookmark = title))),
+                                      onSaveBookmark: (title) => _saveBookmarkToDisk(title)),
+
                             );
                           },
                         ),
@@ -393,11 +467,11 @@ class _MainScreenState extends State<MainScreen> {
                     subtitle: Text('تنبيه يومي ثابت: ${_prayerTimes[index]}',
                         style:
                             const TextStyle(color: Colors.grey, fontSize: 12)),
-                    trailing: Switch(
+                    trailing: (
                       value: _alarmStates[index],
                       activeThumbColor: const Color(0xFFD4AF37),
-                      onChanged: (bool value) =>
-                          setState(() => _alarmStates[index] = value),
+                     onChanged: (bool value) => _togglePrayerAlarm(index, value),
+
                     ),
                   ),
                 );
